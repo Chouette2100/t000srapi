@@ -1,0 +1,3 @@
+sr_acct: ${SRACCT}
+sr_pswd: ${SRPSWD}
+maxnorooms: 3
