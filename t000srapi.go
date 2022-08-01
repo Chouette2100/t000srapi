@@ -49,6 +49,7 @@ type Config struct {
 
 	Ver. 0.0.0
 	Ver. 0.1.0 結果出力先の変更を容易にする。CreateLogfile()のインターフェース変更に対応する。
+	Ver. 0.1.1 GetActiveFanNextLevel()実行後のエラー処理の位置ずれを直す。
 
 */
 func main() {
@@ -92,15 +93,15 @@ func main() {
 
 	//	配信者のリストから、ファンレベルの達成状況を調べる。
 	roomafnls, status := exsrapi.GetActiveFanNextLevel( client, userid, rooms )
+	if status != 0 {
+		log.Printf("***** ApiActiveFanNextlevel() returned error. status=%d\n", status)
+		return
+	}
 
 	pfnc := log.Printf
 	//	フォローしている配信者のファンレベル進捗状況を表示する。
 	for _, roomafnl := range roomafnls {
 		pfnc("********************************************************************************\n")
-		if status != 0 {
-			log.Printf("***** ApiActiveFanNextlevel() returned error. status=%d\n", status)
-			return
-		}
 		pfnc("Room_id=%s ( %s )\n", roomafnl.Room_id, roomafnl.Main_name)
 		pfnc("current level = %d\n", roomafnl.Afnl.Level)
 		pfnc("next level =    %d\n", roomafnl.Afnl.Next_level.Level)
