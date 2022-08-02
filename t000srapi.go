@@ -28,6 +28,7 @@ type Config struct {
 	配信が行われていない場合も達成状況を調べることができます。
 
 	$ cd ~/go/src/t000srapi
+	$ vi t000srapi.go				<== このソースを作成する。
 	$ go mod init					<== 注意：パッケージ部分のソースをダウンロードした場合はimport部分は書き換えず、
 	$ go mod tidy					<== 	  go.modに“replace github.com/Chouette2100/srapi ../srapi”みたいに追加します。
 	$ go build t000srapi.go
