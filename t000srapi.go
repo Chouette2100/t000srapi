@@ -49,9 +49,11 @@ import (
 	Ver. 0.1.0 結果出力先の変更を容易にする。CreateLogfile()のインターフェース変更に対応する。
 	Ver. 0.1.1 GetActiveFanNextLevel()実行後のエラー処理の位置ずれを直す。
 	Ver. 0.2.1 レベル10までに必要な視聴時間、ポイント、コメント数を表示する。
+	Ver. 0.2.2 レベル0のときはtarget[cd.Label][9] - cd.Valueを必要な視聴時間として表示する(target[cd.Label][roomafnl.Afnl.Level-1]は存在しない)
 
 */
 
+//	全角を含む文字列の表示幅を指定した（半角）文字数にするため必要なスペースを追加する。
 func SetWidthConst(str string, width int) string {
 	n := disp_width.Measure(str)
 	if n > width {
@@ -170,13 +172,17 @@ func main() {
 				ok := true
 				dt := 0
 				if _, ok = target[cd.Label]; ok {
-					dt = target[cd.Label][9] - target[cd.Label][roomafnl.Afnl.Level-1] - cd.Value
+					if roomafnl.Afnl.Level > 0 {
+						dt = target[cd.Label][9] - target[cd.Label][roomafnl.Afnl.Level-1] - cd.Value
+					} else {
+						dt = target[cd.Label][9] - cd.Value
+					}
 				}
 				if ok && roomafnl.Afnl.Level <= 9 && dt > 0 {
 					pfnc("  %s (目標)%5d %s (実績)%5d %s (Lv10まであと)%5d %s\n",
 						SetWidthConst(cd.Label, 10), cd.Goal, SetWidthConst(cd.Unit, 8), cd.Value, SetWidthConst(cd.Unit, 8), dt, SetWidthConst(cd.Unit, 8))
 				} else {
-					pfnc("  %s (目標)%5d %s (実績)%5d %s\n", 
+					pfnc("  %s (目標)%5d %s (実績)%5d %s\n",
 						SetWidthConst(cd.Label, 10), cd.Goal, SetWidthConst(cd.Unit, 8), cd.Value, SetWidthConst(cd.Unit, 8))
 				}
 			}
