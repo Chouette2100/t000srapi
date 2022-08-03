@@ -11,17 +11,14 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
+	"strings"
+
+	"github.com/gnue/go-disp_width"
 
 	"github.com/Chouette2100/exsrapi"
 	"github.com/Chouette2100/srapi"
 )
-
-type Config struct {
-	SR_acct    string //	SHOWROOMのアカウント名
-	SR_pswd    string //	SHOWROOMのパスワード
-	MaxNoRooms int    // データを取得するルームの最大数
-}
-
 
 /*
 	SHOWROOMのフォローしている配信者の一部あるいは全部について、ファンレベルの達成状況を調べるサンプルプログラム
@@ -32,7 +29,7 @@ type Config struct {
 	$ go mod init					<== 注意：パッケージ部分のソースをダウンロードした場合はimport部分は書き換えず、
 	$ go mod tidy					<== 	  go.modに“replace github.com/Chouette2100/srapi ../srapi”みたいに追加します。
 	$ go build t000srapi.go
-	$ cat config.yml 
+	$ cat config.yml
 	sr_acct: ${SRACCT}				<== ログインアカウントを環境変数 SRACCT で与えます。ここに直接アカウントを書くこともできます。
 	sr_pswd: ${SRPSWD}				<== ログインパスワードを環境変数 SRPSWD で与えます。ここに直接パスワードを書くこともできます。
 	maxnorooms: 3					<== フォローしているルームのうち最初からここで指定した数のルームについてファンレベル達成状況を表示します。
@@ -51,8 +48,60 @@ type Config struct {
 	Ver. 0.0.0
 	Ver. 0.1.0 結果出力先の変更を容易にする。CreateLogfile()のインターフェース変更に対応する。
 	Ver. 0.1.1 GetActiveFanNextLevel()実行後のエラー処理の位置ずれを直す。
+	Ver. 0.2.1 レベル10までに必要な視聴時間、ポイント、コメント数を表示する。
 
 */
+
+func SetWidthConst(str string, width int) string {
+	n := disp_width.Measure(str)
+	if n > width {
+		return str
+	}
+	return str + strings.Repeat(" ", width-n)
+}
+
+type Config struct {
+	SR_acct    string //	SHOWROOMのアカウント名
+	SR_pswd    string //	SHOWROOMのパスワード
+	MaxNoRooms int    // データを取得するルームの最大数
+	Target     []string
+}
+
+//	目標を算出する
+func setTarget(config *Config) (target map[string][]int, err error) {
+
+	target = map[string][]int{}
+
+	if len(config.Target) != 3 {
+		return nil, fmt.Errorf("設定ファイルtargetには三つの要素が必要です。")
+	}
+
+	labels := map[string]bool{"視聴時間": true, "無料ギフト": true, "コメント数": true}
+
+	for i := 0; i < 3; i++ {
+		sTgt := strings.Split(config.Target[i], ",")
+		if len(sTgt) != 11 {
+			return nil, fmt.Errorf("設定ファイルのtargetの一つの要素はラベルと10個の目標値をカンマ区切りで書く必要があります。")
+		}
+		for j := 0; j < 10; j++ {
+			sTgt[j+1] = strings.Replace(sTgt[j+1], " ", "", -1)
+			itgt, err := strconv.Atoi(sTgt[j+1])
+			if err != nil {
+				return nil, fmt.Errorf("設定ファイルのtargetの目標値には数値を書く必要があります。\"%s\"", sTgt[j+1])
+			}
+			if _, ok := labels[sTgt[0]]; !ok {
+				return nil, fmt.Errorf("設定ファイルのtargetのラベルには\"視聴時間\"、\"無料ギフト\"、\"コメント\"のいずれかを書く必要があります。")
+			}
+			target[sTgt[0]] = append(target[sTgt[0]], itgt)
+		}
+		for j := 1; j < 10; j++ {
+			target[sTgt[0]][j] += target[sTgt[0]][j-1]
+		}
+	}
+	//	log.Printf("%+v\n", target)
+	return target, nil
+}
+
 func main() {
 
 	//	ログファイルを設定する。
@@ -67,7 +116,16 @@ func main() {
 
 	//	設定ファイルを読み込む
 	var config Config
-	exsrapi.LoadConfig(os.Args[1], &config)
+	status := exsrapi.LoadConfig(os.Args[1], &config)
+	if status != 0 {
+		log.Printf("LoadConfig error: %d\n", status)
+	}
+
+	target, err := setTarget(&config)
+	if err != nil {
+		log.Printf("setTarget error: %s\n", err)
+		return
+	}
 
 	//	cookiejarがセットされたHTTPクライアントを作る
 	client, jar, err := exsrapi.CreateNewClient(config.SR_acct)
@@ -93,13 +151,13 @@ func main() {
 	}
 
 	//	配信者のリストから、ファンレベルの達成状況を調べる。
-	roomafnls, status := exsrapi.GetActiveFanNextLevel( client, userid, rooms )
+	roomafnls, status := exsrapi.GetActiveFanNextLevel(client, userid, rooms)
 	if status != 0 {
 		log.Printf("***** ApiActiveFanNextlevel() returned error. status=%d\n", status)
 		return
 	}
 
-	pfnc := log.Printf
+	pfnc := fmt.Printf
 	//	フォローしている配信者のファンレベル進捗状況を表示する。
 	for _, roomafnl := range roomafnls {
 		pfnc("********************************************************************************\n")
@@ -109,7 +167,18 @@ func main() {
 		for _, c := range roomafnl.Afnl.Next_level.Conditions {
 			pfnc("%s\n", c.Label)
 			for _, cd := range c.Condition_details {
-				pfnc("  %-12s (目標)%5d %-10s (実績)%5d %-10s\n", cd.Label, cd.Goal, cd.Unit, cd.Value, cd.Unit)
+				ok := true
+				dt := 0
+				if _, ok = target[cd.Label]; ok {
+					dt = target[cd.Label][9] - target[cd.Label][roomafnl.Afnl.Level-1] - cd.Value
+				}
+				if ok && roomafnl.Afnl.Level <= 9 && dt > 0 {
+					pfnc("  %s (目標)%5d %s (実績)%5d %s (Lv10まであと)%5d %s\n",
+						SetWidthConst(cd.Label, 10), cd.Goal, SetWidthConst(cd.Unit, 8), cd.Value, SetWidthConst(cd.Unit, 8), dt, SetWidthConst(cd.Unit, 8))
+				} else {
+					pfnc("  %s (目標)%5d %s (実績)%5d %s\n", 
+						SetWidthConst(cd.Label, 10), cd.Goal, SetWidthConst(cd.Unit, 8), cd.Value, SetWidthConst(cd.Unit, 8))
+				}
 			}
 		}
 	}
