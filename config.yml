@@ -4,4 +4,4 @@ target:
 - コメント数,   0,  0,  0,  0,   0,   1,   1,   1,    1,    1
 sr_acct: ${SRACCT}
 sr_pswd: ${SRPSWD}
-maxnorooms: 4
+maxnorooms: 3
