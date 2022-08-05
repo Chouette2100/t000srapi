@@ -55,6 +55,7 @@ import (
 	Ver. 0.1.1 GetActiveFanNextLevel()実行後のエラー処理の位置ずれを直す。
 	Ver. 0.2.1 レベル10までに必要な視聴時間、ポイント、コメント数を表示する。
 	Ver. 0.2.2 レベル0のときはtarget[cd.Label][9] - cd.Valueを必要な視聴時間として表示する(target[cd.Label][roomafnl.Afnl.Level-1]は存在しない)
+	Ver. 1.0.0 LoginShowroom() の戻り値 status を err に変更したことに対応する。
 
 */
 
@@ -121,13 +122,14 @@ func main() {
 		return
 	}
 
-	//	設定ファイルを読み込む
+	//	設定ファイルを読み込む。設定ファイルには各レベルを達成するのに必要な視聴時間、ポイント、コメント数を書いてある。
 	var config Config
 	status := exsrapi.LoadConfig(os.Args[1], &config)
 	if status != 0 {
 		log.Printf("LoadConfig error: %d\n", status)
 	}
 
+	//	各レベルで必要なから各レベルを達成するのに必要な視聴時間、ポイント、コメント数を算出する。
 	target, err := setTarget(&config)
 	if err != nil {
 		log.Printf("setTarget error: %s\n", err)
@@ -144,9 +146,9 @@ func main() {
 	defer jar.Save()
 
 	//	SHOWROOMのサービスにログインし、ユーザIDを取得する。
-	userid, status := exsrapi.LoginShowroom(client, config.SR_acct, config.SR_pswd)
-	if status != 0 {
-		log.Printf(" LoginShowroom returned status = %d\n", status)
+	userid, err := exsrapi.LoginShowroom(client, config.SR_acct, config.SR_pswd)
+	if err != nil {
+		log.Printf("err = %+v\n", err)
 		return
 	}
 
@@ -164,7 +166,7 @@ func main() {
 		return
 	}
 
-	pfnc := fmt.Printf
+	pfnc := log.Printf
 	//	フォローしている配信者のファンレベル進捗状況を表示する。
 	for _, roomafnl := range roomafnls {
 		pfnc("********************************************************************************\n")
