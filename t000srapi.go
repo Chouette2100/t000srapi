@@ -8,6 +8,7 @@ https://opensource.org/licenses/mit-license.php
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -56,6 +57,7 @@ import (
 	Ver. 0.2.1 レベル10までに必要な視聴時間、ポイント、コメント数を表示する。
 	Ver. 0.2.2 レベル0のときはtarget[cd.Label][9] - cd.Valueを必要な視聴時間として表示する(target[cd.Label][roomafnl.Afnl.Level-1]は存在しない)
 	Ver. 1.0.0 LoginShowroom() の戻り値 status を err に変更したことに対応する。
+	Ver. 1.1.0 下位の関数の戻り値 status を err に変更したことに対応する。
 
 */
 
@@ -81,7 +83,7 @@ func setTarget(config *Config) (target map[string][]int, err error) {
 	target = map[string][]int{}
 
 	if len(config.Target) != 3 {
-		return nil, fmt.Errorf("設定ファイルtargetには三つの要素が必要です。")
+		return nil, errors.New("設定ファイルtargetには三つの要素が必要です。")
 	}
 
 	labels := map[string]bool{"視聴時間": true, "無料ギフト": true, "コメント数": true}
@@ -89,16 +91,16 @@ func setTarget(config *Config) (target map[string][]int, err error) {
 	for i := 0; i < 3; i++ {
 		sTgt := strings.Split(config.Target[i], ",")
 		if len(sTgt) != 11 {
-			return nil, fmt.Errorf("設定ファイルのtargetの一つの要素はラベルと10個の目標値をカンマ区切りで書く必要があります。")
+			return nil, errors.New("設定ファイルのtargetの一つの要素はラベルと10個の目標値をカンマ区切りで書く必要があります。")
 		}
 		for j := 0; j < 10; j++ {
 			sTgt[j+1] = strings.Replace(sTgt[j+1], " ", "", -1)
 			itgt, err := strconv.Atoi(sTgt[j+1])
 			if err != nil {
-				return nil, fmt.Errorf("設定ファイルのtargetの目標値には数値を書く必要があります。\"%s\"", sTgt[j+1])
+				return nil, errors.New("設定ファイルのtargetの目標値には数値を書く必要があります。 [" + sTgt[j+1] + "]")
 			}
 			if _, ok := labels[sTgt[0]]; !ok {
-				return nil, fmt.Errorf("設定ファイルのtargetのラベルには\"視聴時間\"、\"無料ギフト\"、\"コメント\"のいずれかを書く必要があります。")
+				return nil, errors.New("設定ファイルのtargetのラベルには\"視聴時間\"、\"無料ギフト\"、\"コメント\"のいずれかを書く必要があります。")
 			}
 			target[sTgt[0]] = append(target[sTgt[0]], itgt)
 		}
@@ -124,15 +126,16 @@ func main() {
 
 	//	設定ファイルを読み込む。設定ファイルには各レベルを達成するのに必要な視聴時間、ポイント、コメント数を書いてある。
 	var config Config
-	status := exsrapi.LoadConfig(os.Args[1], &config)
-	if status != 0 {
-		log.Printf("LoadConfig error: %d\n", status)
+	err := exsrapi.LoadConfig(os.Args[1], &config)
+	if err != nil {
+		log.Printf("LoadConfig: %s\n", err.Error())
+		return
 	}
 
 	//	各レベルで必要なから各レベルを達成するのに必要な視聴時間、ポイント、コメント数を算出する。
 	target, err := setTarget(&config)
 	if err != nil {
-		log.Printf("setTarget error: %s\n", err)
+		log.Printf("setTarget: %s\n", err.Error())
 		return
 	}
 
@@ -148,21 +151,21 @@ func main() {
 	//	SHOWROOMのサービスにログインし、ユーザIDを取得する。
 	userid, err := exsrapi.LoginShowroom(client, config.SR_acct, config.SR_pswd)
 	if err != nil {
-		log.Printf("err = %+v\n", err)
+		log.Printf("exsrapi.LoginShowroom: %s\n", err.Error())
 		return
 	}
 
 	//	フォローしている配信者のリストを作成する。
-	rooms, status := srapi.CrwlFollow(client, config.MaxNoRooms)
-	if status != 0 {
-		log.Printf(" CrwlFollow returned status = %d\n", status)
+	rooms, err := srapi.CrwlFollow(client, config.MaxNoRooms)
+	if err != nil {
+		log.Printf("srapi.CrwlFollow: %s\n", err.Error())
 		return
 	}
 
 	//	配信者のリストから、ファンレベルの達成状況を調べる。
-	roomafnls, status := exsrapi.GetActiveFanNextLevel(client, userid, rooms)
-	if status != 0 {
-		log.Printf("***** ApiActiveFanNextlevel() returned error. status=%d\n", status)
+	roomafnls, err := exsrapi.GetActiveFanNextLevel(client, userid, rooms)
+	if err != nil {
+		log.Printf("exsrapi.ApiActiveFanNextlevel: %s\n", err.Error())
 		return
 	}
 
