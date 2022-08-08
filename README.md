@@ -5,7 +5,8 @@
 	
 	以下はソースを作成する（コピペ）するところからの説明です。
 	githubからソースをダウンロードして使用する場合は次の記事をご参照ください。
-		[「Githubを利用したサンプルプログラムの実行方法」](https://zenn.dev/chouette2100/books/d8c28f8ff426b7/viewer/220e38)
+		[【Unix/Linux】Githubにあるサンプルプログラムの実行方法](https://zenn.dev/chouette2100/books/d8c28f8ff426b7/viewer/220e38)
+		[【Windows】Githubにあるサンプルプログラムの実行方法](https://zenn.dev/chouette2100/books/d8c28f8ff426b7/viewer/e27fc9)
 
 ```
 	$ cd ~/go/src/t000srapi
