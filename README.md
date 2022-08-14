@@ -1,12 +1,17 @@
 # t000srapi
 
-	SHOWROOMのフォローしている配信者の一部あるいは全部について、ファンレベルの達成状況を調べるサンプルプログラム
-	配信が行われていない場合も達成状況を調べることができます。
+SHOWROOMのフォローしている配信者の一部あるいは全部について、ファンレベルの達成状況を調べるサンプルプログラム
+配信が行われていない場合も達成状況を調べることができます。
+
+　　[【応用例】フォローしているルームのファンレベル進捗状況を知る](https://zenn.dev/chouette2100/books/d8c28f8ff426b7/viewer/0ca38c)
 	
-	以下はソースを作成する（コピペ）するところからの説明です。
-	githubからソースをダウンロードして使用する場合は次の記事をご参照ください。
-		[【Unix/Linux】Githubにあるサンプルプログラムの実行方法](https://zenn.dev/chouette2100/books/d8c28f8ff426b7/viewer/220e38)
-		[【Windows】Githubにあるサンプルプログラムの実行方法](https://zenn.dev/chouette2100/books/d8c28f8ff426b7/viewer/e27fc9)
+以下はソースを作成する（コピペ）するところからの説明です。
+githubからソースをダウンロードして使用する場合は次の記事をご参照ください。
+
+　　[【Unix/Linux】Githubにあるサンプルプログラムの実行方法](https://zenn.dev/chouette2100/books/d8c28f8ff426b7/viewer/220e38)
+
+　　[【Windows】Githubにあるサンプルプログラムの実行方法](https://zenn.dev/chouette2100/books/d8c28f8ff426b7/viewer/e27fc9)
+
 
 ```
 	$ cd ~/go/src/t000srapi
