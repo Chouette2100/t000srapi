@@ -63,6 +63,7 @@ import (
 	Ver. 0.2.2 レベル0のときはtarget[cd.Label][9] - cd.Valueを必要な視聴時間として表示する(target[cd.Label][roomafnl.Afnl.Level-1]は存在しない)
 	Ver. 1.0.0 LoginShowroom() の戻り値 status を err に変更したことに対応する。
 	Ver. 1.1.0 下位の関数の戻り値 status を err に変更したことに対応する。
+	Ver. 1.2.0 フォローしているルームの一覧の取得をarapi.CrawlFollow()からsrapi.GetFollowRoomsByApi()に変更する。
 
 */
 
@@ -161,14 +162,21 @@ func main() {
 	}
 
 	//	フォローしている配信者のリストを作成する。
+	/*
 	rooms, err := srapi.CrwlFollow(client, config.MaxNoRooms)
+	if err != nil {
+		log.Printf("srapi.CrwlFollow: %s\n", err.Error())
+		return
+	}
+	*/
+	rooms, err := srapi.GetFollowRoomsByApi(client)
 	if err != nil {
 		log.Printf("srapi.CrwlFollow: %s\n", err.Error())
 		return
 	}
 
 	//	配信者のリストから、ファンレベルの達成状況を調べる。
-	roomafnls, err := exsrapi.GetActiveFanNextLevel(client, userid, rooms)
+	roomafnls, err := exsrapi.GetActiveFanNextLevel(client, userid, rooms[0:config.MaxNoRooms])
 	if err != nil {
 		log.Printf("exsrapi.ApiActiveFanNextlevel: %s\n", err.Error())
 		return
